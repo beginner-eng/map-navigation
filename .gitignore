@@ -1,0 +1,21 @@
+# Build outputs
+backend/build/
+backend/map_navigation_backend
+backend/map_navigation_backend.exe
+
+# Generated at runtime
+data/result.json
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store

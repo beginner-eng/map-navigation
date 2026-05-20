@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地图导航系统 - Map Navigation System</title>
+
+    <!-- Cytoscape.js CDN -->
+    <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+
+    <!-- 样式表 -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ============================================================
+    页面头部
+    ============================================================ -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">&#9830;</span>
+                <h1>地图导航系统</h1>
+            </div>
+            <p class="subtitle">基于 Dijkstra 最短路径算法 | 图数据结构 | 邻接矩阵</p>
+        </div>
+    </header>
+
+    <!-- ============================================================
+    主内容区：三栏布局
+    ============================================================ -->
+    <main class="main-container">
+
+        <!-- 左侧：控制面板 -->
+        <aside class="sidebar">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">&#9873;</span>
+                    <h2>路径查询</h2>
+                </div>
+                <div class="card-body">
+
+                    <!-- 起点选择 -->
+                    <div class="form-group">
+                        <label for="startSelect">
+                            <span class="label-icon">&#9654;</span> 起点（出发地）
+                        </label>
+                        <select id="startSelect" class="form-select">
+                            <option value="">-- 请选择起点 --</option>
+                        </select>
+                    </div>
+
+                    <!-- 终点选择 -->
+                    <div class="form-group">
+                        <label for="endSelect">
+                            <span class="label-icon">&#9632;</span> 终点（目的地）
+                        </label>
+                        <select id="endSelect" class="form-select">
+                            <option value="">-- 请选择终点 --</option>
+                        </select>
+                    </div>
+
+                    <!-- 计算按钮 -->
+                    <button id="calcBtn" class="btn btn-primary" onclick="calculateRoute()">
+                        <span class="btn-icon">&#9881;</span> 计算最短路径
+                    </button>
+
+                    <!-- 重置按钮 -->
+                    <button id="resetBtn" class="btn btn-secondary" onclick="resetHighlight()">
+                        <span class="btn-icon">&#8634;</span> 重置高亮
+                    </button>
+                </div>
+            </div>
+
+            <!-- 结果显示卡片 -->
+            <div class="card result-card" id="resultCard" style="display: none;">
+                <div class="card-header">
+                    <span class="card-icon">&#10003;</span>
+                    <h2>查询结果</h2>
+                </div>
+                <div class="card-body">
+                    <div class="result-item">
+                        <span class="result-label">最短距离</span>
+                        <span class="result-value" id="resultDistance">--</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">路径详情</span>
+                        <span class="result-value path-value" id="resultPath">--</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">状态</span>
+                        <span class="result-value" id="resultStatus">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图例 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">&#9883;</span>
+                    <h2>图例</h2>
+                </div>
+                <div class="card-body legend-body">
+                    <div class="legend-item">
+                        <span class="legend-node" style="background: #4ec9b0;"></span>
+                        <span>普通节点</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-node" style="background: #569cd6;"></span>
+                        <span>起点</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-node" style="background: #ce9178;"></span>
+                        <span>终点</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-edge" style="background: #3a3d41;"></span>
+                        <span>普通道路</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-edge" style="background: #ff6b6b;"></span>
+                        <span>最短路径</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 中央：地图可视化区域 -->
+        <section class="map-area">
+            <div class="map-card">
+                <div class="map-toolbar">
+                    <span class="toolbar-title">地图可视化</span>
+                    <span class="toolbar-info" id="graphInfo">节点: 0 | 边: 0</span>
+                </div>
+                <div id="cyContainer">
+                    <div id="cy"></div>
+                </div>
+                <div class="map-footer">
+                    <span>&#128269; 滚轮缩放 | &#128070; 拖拽移动 | &#128073; 点击节点 | &#128207; 边视觉长度与实际距离成正比</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================
+    页脚
+    ============================================================ -->
+    <footer class="footer">
+        <p>地图导航系统 v2.0 | C 语言 Dijkstra 后端 + HTML/CSS/JS 前端 + Cytoscape.js 可视化</p>
+        <p>数据结构课程设计项目 | 图 · 最短路径 · 邻接矩阵</p>
+    </footer>
+
+    <!-- 加载脚本 -->
+    <script src="script.js"></script>
+</body>
+</html>
