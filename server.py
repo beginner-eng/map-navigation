@@ -86,6 +86,36 @@ def find_backend_exe():
     return str(backend_dir / BACKEND_EXE)
 
 
+def parse_map_file():
+    """
+    解析 data/map.txt，返回 {"locations": [...], "roads": [[from,to,weight],...]}
+    """
+    map_path = PROJECT_ROOT / MAP_FILE
+    locations = []
+    roads = []
+
+    try:
+        with open(map_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if line[0] in ('V', 'v'):
+                    parts = line.split(None, 1)
+                    if len(parts) >= 2:
+                        locations.append(parts[1])
+                elif line[0] in ('E', 'e'):
+                    parts = line.split()
+                    if len(parts) >= 4:
+                        roads.append([int(parts[1]), int(parts[2]), int(parts[3])])
+    except FileNotFoundError:
+        log(f"地图文件不存在: {map_path}", "ERR")
+        return {"locations": [], "roads": []}
+
+    log(f"地图加载完成: {len(locations)} 个地点, {len(roads)} 条道路", "OK")
+    return {"locations": locations, "roads": roads}
+
+
 def run_c_backend(start, end):
     """
     调用 C 后端计算最短路径
@@ -186,6 +216,11 @@ class NavHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_api_route(parsed)
             return
 
+        # ---- API 路由: /api/map (地图数据) ----
+        if parsed.path == '/api/map':
+            self.handle_api_map()
+            return
+
         # ---- 静态文件服务 ----
         super().do_GET()
 
@@ -216,6 +251,12 @@ class NavHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         # 返回结果
         self.send_json_response(200, result)
+
+    def handle_api_map(self):
+        """返回地图数据（地点列表和道路列表）"""
+        data = parse_map_file()
+        self.send_json_response(200, data)
+
 
     def send_json_response(self, status_code, data):
         """发送 JSON 响应"""

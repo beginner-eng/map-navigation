@@ -75,7 +75,7 @@
 ## 工程结构
 
 ```
-map_navigation/
+dijkstra-map-navigator/
 │
 ├── backend/                     C 语言后端
 │   ├── include/
@@ -190,6 +190,19 @@ python server.py 8080 --debug
 
 ## API 接口
 
+### GET /api/map
+
+返回地图数据（地点列表和道路列表）。
+
+**响应示例**：
+
+```json
+{
+  "locations": ["上海火车站", "人民广场", ...],
+  "roads": [[0, 1, 4], [1, 2, 3], ...]
+}
+```
+
 ### GET /api/route
 
 **参数**：
@@ -228,7 +241,7 @@ python server.py 8080 --debug
 
 **地点**：上海火车站、人民广场、外滩、南京东路、陆家嘴、东方明珠、豫园、徐家汇、上海交通大学、上海体育馆、虹桥机场、虹桥火车站、上海南站、世博园、张江高科技园区、上海科技馆、复旦大学、五角场、迪士尼乐园、浦东国际机场
 
-> 想生成其他城市的地图？将 `prompts/city_map_generator.md` 的内容发给任意 AI（Claude、ChatGPT 等），即可自动生成对应城市的 `map.txt` 和 `layout.json`。
+> 想生成其他城市的地图？将 `prompts/city_map_generator.md` 的内容发给任意 AI（Claude、ChatGPT 等），将生成的 `map.txt` 替换 `data/map.txt`，前端会自动加载新地图。
 
 **路网示意**：
 

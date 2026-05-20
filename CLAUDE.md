@@ -48,7 +48,7 @@ Browser ◀──────────── JSON response ──────
 ```
 
 - **C backend** (`backend/`): Adjacency-matrix graph (`Graph` struct, max 20 vertices), Dijkstra O(V²), hand-rolled JSON output (no third-party JSON library). The executable takes start/end indices as CLI args and writes `result.json`.
-- **Python bridge** (`server.py`): Extends `SimpleHTTPRequestHandler`, serves static files from `frontend/`, proxies `/api/route` to the C backend subprocess. Zero pip dependencies.
+- **Python bridge** (`server.py`): Extends `SimpleHTTPRequestHandler`, serves static files from `frontend/`, proxies `/api/route` to the C backend subprocess, and serves map data via `/api/map`. Zero pip dependencies.
 - **Frontend** (`frontend/`): Cytoscape.js graph visualization with a custom distance-proportional force-directed layout (not Cytoscape's built-in layouts). The layout iteratively applies spring forces so that visual edge length ≈ real road distance × scaling factor.
 
 ## Key implementation details
@@ -56,14 +56,10 @@ Browser ◀──────────── JSON response ──────
 ### Dijkstra is duplicated
 The Dijkstra algorithm logic exists in **two places**: `backend/src/dijkstra.c` (standalone with console output) and `backend/src/main.c` (inlined into `main()` for JSON output). Changes to the core algorithm must be applied to both locations, or the `dijkstra.c` version should be refactored to return the `dist[]`/`prev[]` arrays so `main.c` can reuse it.
 
-### Map data is duplicated
-The map data (20 locations, ~40 roads) exists in two places that must stay consistent:
-1. `data/map.txt` — canonical source, loaded by the C backend and used by `make test`
-2. `frontend/script.js` — `LOCATIONS[]` and `ROADS[]` arrays used by the custom layout and Cytoscape initialization
+### Map data
+The single source of truth is `data/map.txt` — loaded by both the C backend and served to the frontend via the `/api/map` endpoint. The frontend fetches it dynamically at page load, so there's no duplicated data to maintain.
 
-When adding/removing locations or roads, update both.
-
-To generate a map for a different city, use the prompt template at `prompts/city_map_generator.md` with any AI — it produces both `map.txt` and `layout.json` for the target city.
+To generate a map for a different city, use the prompt template at `prompts/city_map_generator.md` with any AI — it produces `map.txt` for the target city. Replace `data/map.txt` with the output and the frontend will pick it up automatically via `/api/map`.
 
 ### Graph is undirected
 `addEdge()` sets `edge[start][end] = edge[end][start] = weight` — the graph is always undirected. `INF` (99999) represents no edge, `0` represents self-loops (diagonal).
