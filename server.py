@@ -130,7 +130,7 @@ def parse_map_file(city=None):
                         roads.append([int(parts[1]), int(parts[2]), int(parts[3])])
     except FileNotFoundError:
         log(f"地图文件不存在: {map_path}", "ERR")
-        return {"locations": [], "roads": []}
+        return {"error": f"地图文件不存在: {city or '默认'}"}
 
     log(f"地图加载完成 ({city or '默认'}): {len(locations)} 个地点, {len(roads)} 条道路", "OK")
     return {"locations": locations, "roads": roads}
@@ -249,6 +249,11 @@ class NavHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_api_maps()
             return
 
+        # ---- 静态数据: /data/layouts/*.json ----
+        if parsed.path.startswith('/data/layouts/'):
+            self.handle_static_data(parsed.path)
+            return
+
         # ---- 静态文件服务 ----
         super().do_GET()
 
@@ -286,12 +291,35 @@ class NavHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         params = urllib.parse.parse_qs(parsed.query)
         city = params.get('city', [None])[0]
         data = parse_map_file(city)
-        self.send_json_response(200, data)
+        if 'error' in data:
+            self.send_json_response(404, data)
+        else:
+            self.send_json_response(200, data)
 
     def handle_api_maps(self):
         """返回可用城市列表"""
         cities = list_cities()
         self.send_json_response(200, cities)
+
+    def handle_static_data(self, path):
+        """返回 data/ 目录下的静态 JSON 文件"""
+        file_path = PROJECT_ROOT / path.lstrip('/')
+        if not file_path.is_file():
+            self.send_json_response(404, {"error": "文件不存在"})
+            return
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                body = f.read().encode('utf-8')
+        except OSError:
+            self.send_json_response(500, {"error": "无法读取文件"})
+            return
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Cache-Control', 'no-cache')
+        self.end_headers()
+        self.wfile.write(body)
 
 
     def send_json_response(self, status_code, data):

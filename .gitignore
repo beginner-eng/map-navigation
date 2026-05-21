@@ -16,10 +16,15 @@ __pycache__/
 *.swp
 *.swo
 
-# OS
+# Claude Code local settings
+.claude/
 Thumbs.db
 .DS_Store
 
 # User-generated city maps (keep only the default)
 maps/*.txt
 !maps/shanghai.txt
+
+# User-generated layouts (keep only the default)
+data/layouts/*.json
+!data/layouts/shanghai.json

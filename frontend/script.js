@@ -343,11 +343,14 @@ function computeDistanceBasedLayout() {
  * Cytoscape.js 初始化
  * ================================================================ */
 
-function initCytoscape() {
+function initCytoscape(positions) {
     const elements = buildCyElements();
 
-    // 使用距离比例布局（替代硬编码坐标）
-    const positions = computeDistanceBasedLayout();
+    // 使用预设布局或回退到力导向计算
+    if (!positions) {
+        positions = computeDistanceBasedLayout();
+        console.log('[布局] 力导向计算完成');
+    }
 
     cy = cytoscape({
         container: document.getElementById('cy'),
@@ -912,6 +915,22 @@ async function loadCity(city) {
     // 重置结果
     hideResult();
 
-    // 重建图
-    initCytoscape();
+    // 尝试加载预设布局
+    let positions = null;
+    try {
+        const layoutResp = await fetch(`/data/layouts/${encodeURIComponent(city)}.json`);
+        if (layoutResp.ok) {
+            const layoutData = await layoutResp.json();
+            positions = {};
+            for (const node of layoutData.nodes) {
+                positions[node.id] = { x: node.x, y: node.y };
+            }
+            console.log(`[布局] 使用预设布局: ${city} (${Object.keys(positions).length} 个节点)`);
+        }
+    } catch (e) {
+        // 加载失败，回退到力导向
+    }
+
+    // 重建图（传入 positions，null 表示用力导向计算）
+    initCytoscape(positions);
 }

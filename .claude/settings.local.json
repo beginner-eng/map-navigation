@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make test *)"
+      "Bash(make test *)",
+      "Bash(python tools/generate_layout.py maps/shanghai.txt data/layouts/shanghai.json)",
+      "Bash(python tools/generate_layout.py maps/chengdu.txt data/layouts/chengdu.json)",
+      "Bash(git *)",
+      "Bash(python -c ' *)"
     ]
   }
 }

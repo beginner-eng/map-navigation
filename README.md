@@ -94,13 +94,20 @@ dijkstra-map-navigator/
 │   ├── style.css                CSS 样式（深色科技风主题）
 │   └── script.js                JS 核心脚本（Cytoscape.js + 通信）
 │
+├── tools/                       开发工具
+│   └── generate_layout.py        布局文件生成器
+│
+├── prompts/                     AI 提示词模板
+│   └── city_map_generator.md     城市地图生成器
+│
 ├── maps/                       多城市地图数据
-│   └── shanghai.txt             上海地图
-│   └── city_map_generator.md     城市地图生成器（生成其他城市地图）
+│   └── shanghai.txt             上海地图（内置）
 │
 ├── data/                        共享数据
-│   ├── map.txt                  地图定义（20地点 + 40+道路）
-│   └── result.json              查询结果（C 生成 → 运行时产生）
+│   ├── map.txt                  默认地图定义（精简版回退）
+│   ├── layouts/                 预设布局坐标
+│   │   └── shanghai.json
+│   └── result.json              查询结果（运行时生成）
 │
 ├── server.py                    Python 桥接服务器
 ├── .gitignore                   Git 忽略规则
@@ -171,7 +178,7 @@ python server.py 8080 --debug
 
 | 功能 | 前端 | 后端 |
 |------|:----:|:----:|
-| 地图节点可视化（20个地点） | ✓ | — |
+| 地图节点可视化（上限50个） | ✓ | — |
 | 道路边显示（带权值标注） | ✓ | — |
 | 下拉框选择起点/终点 | ✓ | — |
 | 最短路径计算 | — | ✓ (Dijkstra) |
@@ -249,9 +256,16 @@ python server.py 8080 --debug
 
 ## 预设地图数据
 
-项目支持**多个城市地图**，启动时通过下拉框切换。地图文件存放在 `maps/` 目录，默认包含**上海**（20 个地点、40+ 条道路）。
+项目支持**多个城市地图**，启动时通过下拉框切换。地图文件存放在 `maps/` 目录，内置**上海**（48 个地点）。
 
-> **想添加新城市？** 把 `prompts/city_map_generator.md` 的内容发给任意 AI（网页版或 Claude Code / Cursor / Trae 等编程工具均可），将生成的 `map.txt` 放入 `maps/` 目录（如 `maps/beijing.txt`），刷新浏览器即可在下拉框中看到新城市。使用编程工具可直接让 AI 写到文件，更方便。
+> **想添加新城市？**
+> 
+> 1. 把 `prompts/city_map_generator.md` 的内容发给任意 AI，获取 `map.txt`
+> 2. 放入 `maps/` 目录（如 `maps/beijing.txt`）
+> 3. 运行 `python tools/generate_layout.py maps/<城市名>.txt` 生成固定布局
+> 4. 刷新浏览器，新城市出现在下拉框中
+> 
+> 第 3 步只做一次。跳过也可用，但地图每次刷新形状会变化。
 
 **路网示意**：
 
@@ -266,6 +280,8 @@ python server.py 8080 --debug
                   │                                      │        │
             复旦大学 ── 五角场                      浦东机场   迪士尼
 ```
+
+> 以上为上海路网示意。成都等城市有类似的分区结构，详见 `maps/` 目录下的地图文件。
 
 ---
 
@@ -301,7 +317,7 @@ python server.py 8080 --debug
 | `backend/src/dijkstra.c` | ~250行 | Dijkstra 完整实现 |
 | `backend/src/graph.c` | ~400行 | 图操作 + 文件 I/O |
 | `backend/src/json_output.c` | ~200行 | JSON 序列化 |
-| `backend/src/main.c` | ~150行 | 命令行入口 |
+| `backend/src/main.c` | ~190行 | 命令行入口 |
 
 ---
 
@@ -337,18 +353,35 @@ node.addClass('path-node');
 
 ---
 
+## 数据分层设计
+
+项目采用**三层数据分离**架构，map 数据、布局坐标、查询结果各自独立：
+
+| 文件 | 职责 | 格式 |
+|------|------|------|
+| `maps/<城市>.txt` | 图结构 + 边权值 | `V` / `E` 文本 |
+| `data/layouts/<城市>.json` | 节点固定坐标 | JSON，`preset` 布局 |
+| `data/result.json` | 最短路径查询结果 | JSON（运行时生成） |
+
+- **map.txt**：定义有哪些地点、哪些道路、每条路多长。适合 C 语言解析和 Dijkstra 算法。
+- **layout.json**：预计算每个节点的固定 x/y 坐标。前端加载后使用 Cytoscape.js 的 `preset` 布局，所有节点位置固定，每次刷新一致。若缺少此文件，自动回退力导向布局。
+- **result.json**：最短路径计算结果，由 C 后端生成。
+
+使用 `python tools/generate_layout.py maps/<城市>.txt` 可为新城市生成布局文件。
+
+---
+
 ## 为什么同一张地图刷新后形状可能变化？
 
-本项目前端使用**自研力导向布局算法**（`computeDistanceBasedLayout()`），该算法以边的权值作为弹簧的理想长度进行迭代计算。由于：
+项目已采用 **preset 布局**（`data/layouts/<城市>.json`），大部分情况下刷新后形状一致。但在以下场景仍会触发力导向算法回退：
 
-- 初始位置带有随机扰动
-- 力导向算法本身不保证唯一解
+- 新城市尚无布局文件
+- 布局文件加载失败
+- 布局文件被删除
 
-同一组距离关系可以对应多种合理的几何形态。例如 A↔B 距离 5、A↔C 距离 5 时，C 可能在 B 的上方也可能在下方，两者都满足距离约束。
+力导向算法以边的权值作为弹簧的理想长度进行迭代，初始位置带有随机扰动，因此同一组距离关系可能对应多种合理的几何形态。**这不会影响最短路径计算结果**——图结构、边权值和 Dijkstra 算法输出始终一致。
 
-**这不会影响最短路径计算结果**——图结构、边权值和 Dijkstra 算法输出始终一致，变化的只是可视化布局。
-
-如需彻底固定地图形状，可改为 `preset` 布局并指定每个节点的固定坐标。
+如需彻底固定地图形状，运行 `python tools/generate_layout.py maps/<城市>.txt` 生成布局文件。
 
 ---
 

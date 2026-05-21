@@ -329,7 +329,7 @@ int loadFromFile(Graph *g, const char *filename)
         if (type == 'V' || type == 'v') {
             /* 顶点行: V 名称 */
             char name[MAX_NAME];
-            if (sscanf(line, " %*c %31s", name) == 1) {
+            if (sscanf(line, " %*c %63s", name) == 1) {
                 addVertex(g, name);
             } else {
                 fprintf(stderr, "[警告] 第 %d 行格式错误，已跳过。\n", lineNo);
